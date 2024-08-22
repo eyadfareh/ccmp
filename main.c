@@ -33,9 +33,10 @@ int main(int argc, char *argv[]) {
   Lexer lexer = createLexer(buf, size);
   TokenList tokens = tokenize(&lexer);
   for (int i = 0; i < tokens.size; i++) {
-    printf("%d %d %d '%s'\n", tokens.tokens[i].line, tokens.tokens[i].col,
-           tokens.tokens[i].type, tokens.tokens[i].lexeme);
+    printf("%d %d %d '%.*s'\n", tokens.tokens[i].line, tokens.tokens[i].col,
+           tokens.tokens[i].type, tokens.tokens[i].end - tokens.tokens[i].start, &buf[tokens.tokens[i].start]);
   }
+
 
   free(buf);
   free(tokens.tokens);

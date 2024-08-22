@@ -32,15 +32,8 @@ Token getToken(Lexer *lexer, TokenType type) {
   token.line = lexer->line;
   token.col = lexer->col;
   // TODO: DO NOT ALLOCATE HERE
-  token.lexeme = malloc(lexer->current - lexer->start + 1);
-  if (token.lexeme == NULL) {
-    perror("malloc");
-    exit(1);
-  }
-
-  strncpy(token.lexeme, lexer->buffer + lexer->start,
-          lexer->current - lexer->start);
-  token.lexeme[lexer->current - lexer->start] = '\0';
+  token.start = lexer->start;
+  token.end = lexer->current;
   lexer->col += lexer->current - lexer->start;
   lexer->start = lexer->current;
   return token;
@@ -95,6 +88,16 @@ Token nextToken(Lexer *lexer) {
   case '{':
     lexer->current++;
     return getToken(lexer, LEFT_BRACE);
+  case '}':
+    lexer->current++;
+    return getToken(lexer, RIGHT_BRACE);
+  case ';':
+    lexer->current++;
+    return getToken(lexer, SEMICOLON);
+  case '=':
+    lexer->current++;
+    return getToken(lexer, EQUAL);
+
   default:
     if (isAlphaNumerical(lexer->buffer[lexer->current])) {
       while (isAlphaNumerical(lexer->buffer[lexer->current])) {
@@ -105,7 +108,9 @@ Token nextToken(Lexer *lexer) {
     }
   }
 
-  printf("WARNING: UNREACHABLE CODE REACHED; lexer.c::nextToken\n");
+  printf("WARNING: UNREACHABLE CODE REACHED; lexer.c::nextToken; \n");
+  printf("lexer->current = %d; lexer->buffer[lexer->current] = '%c'\n",
+         lexer->current, lexer->buffer[lexer->current]);
   lexer->current++;
   return getToken(lexer, IDENTIFIER);
 }

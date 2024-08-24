@@ -2,7 +2,7 @@
 
 typedef enum {
   IDENTIFIER,
-  INTEGER,
+  LITERAL,
   PLUS,
   MINUS,
   MULTIPLY,
@@ -16,6 +16,8 @@ typedef enum {
   SEMICOLON,
   COMMA,
   EQUAL,
+  EQUAL_EQUAL,
+  STRING_LITERAL,
   END_OF_FILE
 } TokenType;
 

@@ -4,11 +4,16 @@
 #include <stdlib.h>
 #include <string.h>
 static bool isAlphaNumerical(char x) {
-  if ((x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') ||
-      (x >= '0' && x <= '9') || x == '_')
-    return 1;
-  return 0;
+  return ((x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') ||
+          (x >= '0' && x <= '9') || x == '_');
 }
+static bool isAlpha(char x) {
+  return ((x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') || x == '_');
+}
+static bool isNumeric(char x){
+  return (x >= '0' && x <= '9');
+}
+static char peek(Lexer *l) { return l->buffer[l->current]; }
 Lexer createLexer(char *buffer, int length) {
   Lexer lexer;
   lexer.buffer = buffer;
@@ -53,7 +58,7 @@ void addToken(TokenList *tokenList, Token token) {
 }
 
 Token nextToken(Lexer *lexer) {
-  char c = lexer->buffer[lexer->current];
+  char c = peek(lexer);
   switch (c) {
   case '\0':
     return getToken(lexer, END_OF_FILE);
@@ -97,20 +102,33 @@ Token nextToken(Lexer *lexer) {
   case '=':
     lexer->current++;
     return getToken(lexer, EQUAL);
+  case '"':
+    lexer->current++;
+    while (peek(lexer) != '"') {
+      lexer->current++;
+    }
+    lexer->current++;
+    return getToken(lexer, STRING_LITERAL);
 
   default:
-    if (isAlphaNumerical(lexer->buffer[lexer->current])) {
-      while (isAlphaNumerical(lexer->buffer[lexer->current])) {
+    if (isAlpha(peek(lexer))) {
+      while (isAlphaNumerical(peek(lexer))) {
         lexer->current++;
       }
 
       return getToken(lexer, IDENTIFIER);
     }
+    if(isNumeric(peek(lexer))){
+      while(isNumeric(peek(lexer))){
+        lexer->current++;
+      }
+      return getToken(lexer, LITERAL);
+    }
   }
 
   printf("WARNING: UNREACHABLE CODE REACHED; lexer.c::nextToken; \n");
-  printf("lexer->current = %d; lexer->buffer[lexer->current] = '%c'\n",
-         lexer->current, lexer->buffer[lexer->current]);
+  printf("lexer->current = %d; peek(lexer) = '%c'\n", lexer->current,
+         peek(lexer));
   lexer->current++;
   return getToken(lexer, IDENTIFIER);
 }

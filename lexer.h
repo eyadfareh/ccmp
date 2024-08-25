@@ -25,8 +25,7 @@ typedef struct {
   TokenType type;
   int line;
   int col;
-  int start;
-  int end;
+  char* lexeme;
 } Token;
 
 typedef struct {
@@ -37,6 +36,8 @@ typedef struct {
 
 typedef struct {
   char *buffer;
+  char *lexemeBuffer;
+  int lexemePos;
   int line;
   int col;
   int start;

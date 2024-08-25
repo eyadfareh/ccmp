@@ -17,6 +17,8 @@ static char peek(Lexer *l) { return l->buffer[l->current]; }
 Lexer createLexer(char *buffer, int length) {
   Lexer lexer;
   lexer.buffer = buffer;
+  lexer.lexemeBuffer = (char*) malloc(length*2);
+  lexer.lexemePos = 0;
   lexer.line = 1;
   lexer.col = 1;
   lexer.start = 0;
@@ -37,8 +39,12 @@ Token getToken(Lexer *lexer, TokenType type) {
   token.line = lexer->line;
   token.col = lexer->col;
   // TODO: DO NOT ALLOCATE HERE
-  token.start = lexer->start;
-  token.end = lexer->current;
+  token.lexeme = (lexer->lexemeBuffer + lexer->lexemePos);
+  strncpy(token.lexeme, lexer->buffer + lexer->start, lexer->current - lexer->start);
+  lexer->lexemePos += lexer->current - lexer->start;
+  lexer->lexemeBuffer[lexer->lexemePos] = '\0';
+  lexer->lexemePos++;
+
   lexer->col += lexer->current - lexer->start;
   lexer->start = lexer->current;
   return token;

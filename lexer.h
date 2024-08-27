@@ -18,6 +18,8 @@ typedef enum {
   EQUAL,
   EQUAL_EQUAL,
   STRING_LITERAL,
+  KEYWORD_INT,
+  KEYWORD_RETURN,
   END_OF_FILE
 } TokenType;
 

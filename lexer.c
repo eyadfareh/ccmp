@@ -49,6 +49,15 @@ Token getToken(Lexer *lexer, TokenType type) {
   lexer->start = lexer->current;
   return token;
 }
+static Token getIdentifier(Lexer *lexer) {
+  Token t = getToken(lexer, IDENTIFIER);
+  if(strcmp(t.lexeme, "int") == 0){
+    t.type = KEYWORD_INT;
+  } else if(strcmp(t.lexeme, "return") == 0){
+    t.type = KEYWORD_RETURN;
+  }
+  return t;
+}
 void addToken(TokenList *tokenList, Token token) {
   if (tokenList->capacity == tokenList->size) {
     tokenList->capacity *= 2;
@@ -122,7 +131,7 @@ Token nextToken(Lexer *lexer) {
         lexer->current++;
       }
 
-      return getToken(lexer, IDENTIFIER);
+      return getIdentifier(lexer);
     }
     if(isNumeric(peek(lexer))){
       while(isNumeric(peek(lexer))){

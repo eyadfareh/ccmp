@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g
 SRC_FILES = main.c lexer.c parser.c
 HEADER_FILES = lexer.h parser.h
 TARGET = ccmp

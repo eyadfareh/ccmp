@@ -1,5 +1,6 @@
 #pragma once
 #include "lexer.h"
+#include <wctype.h>
 
 typedef enum {
   INT_TYPE
@@ -18,7 +19,7 @@ struct ASTNode{
   ASTType type;
   union {
     struct {
-      Token functionName;
+      char* functionName;
       int argc;
       char **argv; // lol
       int statementsLength;
@@ -28,7 +29,7 @@ struct ASTNode{
       ASTNode* val;
     } returnStatement ;
     struct {
-      Token functionName;
+      char* functionName;
       int argc;
       char **argv; // lol
     } functionCall;
@@ -42,7 +43,11 @@ struct ASTNode{
 };
 
 typedef struct {
+  TokenList tokens;
+  int current;
 } Parser;
 
 ASTNode* createEmptyNode();
 void freeNode(ASTNode* n);
+Parser createParser(TokenList);
+ASTNode* parse(Parser* p);

@@ -2,3 +2,6 @@ ccmp
 *.o
 .gdb_history
 tests/
+ast.h
+ast.c
+ast_generator

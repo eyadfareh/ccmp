@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "lexer.h"
+#include <stddef.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -65,17 +66,51 @@ static Token consume(Parser* p, TokenType type) {
   if (check(p, type)) return advance(p);
 }
 
-static ASTNode* parse_type(Parser* p){
-
-
+static ASTNode* parseType(Parser* p){
+  ASTNode* n = createEmptyNode();
+  n->type = TYPE_EXPRESSION;
+  if(match(p, KEYWORD_INT)){
+    n->as.typeExpression.type = INT_TYPE;
+  }else{
+  }
+  return n;
 }
-static ASTNode* parse_declaration(Parser* p){
-  ASTNode* type = parse_type(p);
+static ASTNode* parseExpression(Parser* p){
+  ASTNode* n = createEmptyNode();
+  if(match(p, LITERAL)){
+    n->type = PRIMARY_EXPRESSION;
+    n->as.primaryExpression.x = 0;
+  }
+  return NULL;
+}
+static ASTNode* parseStatement(Parser* p){
+  ASTNode* n = createEmptyNode();
+  if(match(p, KEYWORD_RETURN)){
+    ASTNode* expr = parseExpression(p);
+    consume(p, SEMICOLON);
+    n->type = RETURN_STATEMENT;
+    n->as.returnStatement.val = expr;
+  }
+
+  return NULL;
+}
+static ASTNode* parseDeclaration(Parser* p){
+  ASTNode* type = parseType(p);
+  Token function_name = consume(p, IDENTIFIER);
+  consume(p, LEFT_PAREN);
+  consume(p, RIGHT_PAREN);
+  consume(p, LEFT_BRACE);
+  while(!check(p, RIGHT_BRACE)){
+    ASTNode* stmt = parseStatement(p);
+  }
+  consume(p, RIGHT_BRACE);
+
+
+
 
   ASTNode* n = createEmptyNode();
-
   n->type = FUNCTION_DECLARATION;
-  n->as.functionDeclaration.functionName = "main";
+  n->as.functionDeclaration.functionName = function_name.lexeme;
   n->as.functionDeclaration.argc = 0;
   n->as.functionDeclaration.argv = NULL;
   n->as.functionDeclaration.statementsLength = 0;
@@ -84,5 +119,5 @@ static ASTNode* parse_declaration(Parser* p){
 }
 
 ASTNode* parse(Parser *p){
-  return parse_declaration(p);
+  return parseDeclaration(p);
 }

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 static bool isAlphaNumerical(char x) {
   return ((x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') ||
           (x >= '0' && x <= '9') || x == '_');
@@ -127,6 +128,7 @@ Token nextToken(Lexer *lexer) {
 
   default:
     if (isAlpha(peek(lexer))) {
+
       while (isAlphaNumerical(peek(lexer))) {
         lexer->current++;
       }

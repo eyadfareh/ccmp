@@ -15,7 +15,7 @@ statementTypes = [
     {
         "name":"return_statement",
         "arguments": [
-            {"name": "expression", "type": "int", "free": False},
+            {"name": "expression", "type": "Expression*", "free": "call"},
         ]
     }
 ]
@@ -51,7 +51,6 @@ def generate_definitions(types, name):
     print(f"}} {snake2pascal(name)}Type;")
     print("")
 
-    print(f"typedef struct {snake2pascal(name)} {snake2pascal(name)};");
     print("")
     for t in types:
         print(f"struct {snake2pascal(t['name'])} {{")
@@ -81,9 +80,11 @@ def generate_function_implementation(types, name):
                 print(f"  free(ast->as.{snake2camel(t["name"])}.{snake2camel(argument['name'])});")
             elif argument["free"] == "call_array":
                 print(f"  for(int i = 0; i < ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])}Count; i++) {{")
-                print(f"    free{snake2pascal(t['name'])}(ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])}[i]);")
+                print(f"    free{snake2pascal(argument["type"][:-2])}(ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])}[i]);")
                 print(f"  }}")
                 print(f"  free(ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])});")
+            elif argument["free"] == "call":
+                print(f"  free{snake2pascal(argument["type"][:-1])}(ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])});")
 
 
         print("}")
@@ -91,7 +92,7 @@ def generate_function_implementation(types, name):
     print(f"void free{snake2pascal(name)}({snake2pascal(name)}* ast) {{")
     print("  switch(ast->type) {")
     for t in types:
-        # TODO: don't call any function if there are no arguments to free 
+        # TODO: don't call any function if there are no arguments to free
         print(f"    case {snake2uppersnake(t['name'])}:")
         print(f"      free{snake2pascal(t['name'])}(ast);")
         print("      break;")
@@ -103,6 +104,9 @@ def generate_function_implementation(types, name):
 def generate_header():
     print("#pragma once")
     print("")
+
+    print(f"typedef struct Statement Statement;");
+    print(f"typedef struct Expression Expression;");
     # generate statement
     print("// statement")
     generate_definitions(statementTypes, "statement");

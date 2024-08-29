@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -g
-SRC_FILES = main.c lexer.c parser.c
-HEADER_FILES = lexer.h parser.h
+SRC_FILES = main.c lexer.c parser.c ast.c
+HEADER_FILES = lexer.h parser.h ast.h
 TARGET = ccmp
 
 all: $(TARGET)

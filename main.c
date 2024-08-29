@@ -1,3 +1,4 @@
+#include "ast.h"
 #include "lexer.h"
 #include "parser.h"
 #include <complex.h>
@@ -40,9 +41,9 @@ int main(int argc, char *argv[]) {
   }
   printf("=============================\n");
   Parser p = createParser(tokens);
-  ASTNode* tree = parse(&p);
+  Statement *root = parse(&p);
 
-  freeNode(tree);
+  freeStatement(root);
   free(lexer.lexemeBuffer);
   free(buf);
   free(tokens.tokens);

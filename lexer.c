@@ -118,6 +118,9 @@ Token nextToken(Lexer *lexer) {
   case '=':
     lexer->current++;
     return getToken(lexer, EQUAL);
+  case ',':
+    lexer->current++;
+    return getToken(lexer, COMMA);
   case '"':
     lexer->current++;
     while (peek(lexer) != '"') {

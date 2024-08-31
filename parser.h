@@ -1,11 +1,10 @@
 #pragma once
-#include "lexer.h"
 #include "ast.h"
+#include "lexer.h"
 #include <ctype.h>
 
-typedef enum {
-  INT_TYPE
-} Type;
+
+typedef enum { INT_TYPE } Type;
 
 typedef struct {
   TokenList tokens;
@@ -13,4 +12,4 @@ typedef struct {
 } Parser;
 
 Parser createParser(TokenList);
-Statement* parse(Parser *p);
+StatementList parse(Parser *p);

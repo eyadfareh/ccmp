@@ -41,9 +41,11 @@ int main(int argc, char *argv[]) {
   }
   printf("=============================\n");
   Parser p = createParser(tokens);
-  Statement *root = parse(&p);
+  StatementList statements = parse(&p);
 
-  freeStatement(root);
+  for(int i=0; i< statements.size; i++)
+    freeStatement(statements.statements[i]);
+  free(statements.statements);
   free(lexer.lexemeBuffer);
   free(buf);
   free(tokens.tokens);

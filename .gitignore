@@ -5,3 +5,5 @@ tests/
 ast.h
 ast.c
 ast_generator
+temp
+temp.*

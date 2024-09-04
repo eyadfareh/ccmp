@@ -1,15 +1,12 @@
 #include "ast.h"
 #include "lexer.h"
 #include "parser.h"
+#include "qbe.h"
 #include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>
-int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
-    exit(1);
-  }
-  FILE *fp = fopen(argv[1], "r");
+int compile(char *filename) {
+  FILE *fp = fopen(filename, "r");
   if (fp == NULL) {
     perror("fopen");
     exit(1);
@@ -42,12 +39,27 @@ int main(int argc, char *argv[]) {
   printf("=============================\n");
   Parser p = createParser(tokens);
   StatementList statements = parse(&p);
+  printf("=============================\n");
 
-  for(int i=0; i< statements.size; i++)
+  FILE *f = fopen("temp.qbe", "w");
+  QBEProgram *q = qbe(&statements, f);
+  qbe_generate(q);
+  fclose(f);
+
+  for (int i = 0; i < statements.size; i++)
     freeStatement(statements.statements[i]);
+  free(q);
   free(statements.statements);
   free(lexer.lexemeBuffer);
   free(buf);
   free(tokens.tokens);
+  return 0;
+}
+int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
+    exit(1);
+  }
+  compile(argv[1]);
   return 0;
 }

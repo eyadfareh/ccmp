@@ -23,8 +23,8 @@ static void emit(QBEProgram *p, char *fmt, ...) {
   va_end(args);
 }
 
-static void emitLineShit(QBEProgram *p){
-  emit(p, "%0*c", p->shiftWidth*2, ' ');
+static void emitLineShit(QBEProgram *p) {
+  emit(p, "%0*c", p->shiftWidth * 2, ' ');
 }
 static void emitStatement(QBEProgram *p, Statement *s);
 static int emitExpression(QBEProgram *p, Expression *s);
@@ -58,40 +58,44 @@ static void emitStatement(QBEProgram *p, Statement *s) {
     emit(p, "# Unknown statement type %d\n", s->type);
   }
 }
-static int emitExpression(QBEProgram *p, Expression *s){
+static int emitExpression(QBEProgram *p, Expression *s) {
   switch (s->type) {
-    case LITERAL_EXPRESSION:
-      emitLineShit(p);
-      emit(p, "%%p%d =w copy %d\n", p->localCount, s->as.literalExpression.value);
-      return p->localCount++;
-    case CALL_EXPRESSION: {
-      int *ps = malloc(sizeof(int) * s->as.callExpression.parametersCount);
-      for(int i=0;i<s->as.callExpression.parametersCount;i++){
-        ps[i] = emitExpression(p, s->as.callExpression.parameters[i]);
-      }
-      emitLineShit(p);
-      emit(p, "%%p%d = w call $%s(", p->localCount, s->as.callExpression.callee->as.identifierExpression.name);
-
-      for(int i=0;i<s->as.callExpression.parametersCount;i++){
-        emit(p, "w %d", ps[i]);
-        if(i != s->as.callExpression.parametersCount - 1){
-          emit(p, ", ");
-        }
-      }
-      emit(p, ")\n");
-
-      free(ps);
-      return p->localCount++;
-
+  case LITERAL_EXPRESSION:
+    emitLineShit(p);
+    emit(p, "%%p%d =w copy %d\n", p->localCount, s->as.literalExpression.value);
+    return p->localCount++;
+  case CALL_EXPRESSION: {
+    int *ps = malloc(sizeof(int) * s->as.callExpression.parametersCount);
+    for (int i = 0; i < s->as.callExpression.parametersCount; i++) {
+      ps[i] = emitExpression(p, s->as.callExpression.parameters[i]);
     }
+    emitLineShit(p);
+    emit(p, "%%p%d = w call $%s(", p->localCount,
+         s->as.callExpression.callee->as.identifierExpression.name);
 
+    for (int i = 0; i < s->as.callExpression.parametersCount; i++) {
+      emit(p, "w %d", ps[i]);
+      if (i != s->as.callExpression.parametersCount - 1) {
+        emit(p, ", ");
+      }
+    }
+    emit(p, ")\n");
+
+    free(ps);
+    return p->localCount++;
   }
-
+  }
 }
 void emitBloat(QBEProgram *p) {
   emit(p, "function w $printInt(w %%a){\n"
           "@start\n"
           "  call $printf(l $fmt, ..., w %%a)\n"
+          "  ret 0\n"
+          "}\n");
+  emit(p, "export function w $_start() {\n"
+          "@start\n"
+          "  call $main()\n"
+          "  call $exit(w 0)\n"
           "  ret 0\n"
           "}\n");
   emit(p, "data $fmt = {b \"%%d\\n\"}\n");

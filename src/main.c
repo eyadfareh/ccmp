@@ -2,9 +2,9 @@
 #include "lexer.h"
 #include "parser.h"
 #include "qbe.h"
-#include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 int compile(char *filename) {
   FILE *fp = fopen(filename, "r");
   if (fp == NULL) {
@@ -45,6 +45,11 @@ int compile(char *filename) {
   QBEProgram *q = qbe(&statements, f);
   qbe_generate(q);
   fclose(f);
+
+	system("qbe temp.qbe -o temp.s");
+	system("as temp.s -o temp.o");
+	system("ld -lc --dynamic-linker /lib64/ld-linux-x86-64.so.2 temp.o -o temp");
+	system("rm -rf temp.s temp.o temp.qbe");
 
   for (int i = 0; i < statements.size; i++)
     freeStatement(statements.statements[i]);

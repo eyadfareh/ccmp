@@ -94,8 +94,8 @@ void emitBloat(QBEProgram *p) {
           "}\n");
   emit(p, "export function w $_start() {\n"
           "@start\n"
-          "  call $main()\n"
-          "  call $exit(w 0)\n"
+          "  %%e = w call $main()\n"
+          "  call $exit(w %%e)\n"
           "  ret 0\n"
           "}\n");
   emit(p, "data $fmt = {b \"%%d\\n\"}\n");

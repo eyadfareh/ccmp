@@ -11,14 +11,12 @@ static bool isAlphaNumerical(char x) {
 static bool isAlpha(char x) {
   return ((x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') || x == '_');
 }
-static bool isNumeric(char x){
-  return (x >= '0' && x <= '9');
-}
+static bool isNumeric(char x) { return (x >= '0' && x <= '9'); }
 static char peek(Lexer *l) { return l->buffer[l->current]; }
 Lexer createLexer(char *buffer, int length) {
   Lexer lexer;
   lexer.buffer = buffer;
-  lexer.lexemeBuffer = (char*) malloc(length*2);
+  lexer.lexemeBuffer = (char *)malloc(length * 2);
   lexer.lexemePos = 0;
   lexer.line = 1;
   lexer.col = 1;
@@ -41,7 +39,8 @@ Token getToken(Lexer *lexer, TokenType type) {
   token.col = lexer->col;
   // TODO: DO NOT ALLOCATE HERE
   token.lexeme = (lexer->lexemeBuffer + lexer->lexemePos);
-  strncpy(token.lexeme, lexer->buffer + lexer->start, lexer->current - lexer->start);
+  strncpy(token.lexeme, lexer->buffer + lexer->start,
+          lexer->current - lexer->start);
   lexer->lexemePos += lexer->current - lexer->start;
   lexer->lexemeBuffer[lexer->lexemePos] = '\0';
   lexer->lexemePos++;
@@ -52,10 +51,16 @@ Token getToken(Lexer *lexer, TokenType type) {
 }
 static Token getIdentifier(Lexer *lexer) {
   Token t = getToken(lexer, IDENTIFIER);
-  if(strcmp(t.lexeme, "int") == 0){
+  if (strcmp(t.lexeme, "int") == 0) {
     t.type = KEYWORD_INT;
-  } else if(strcmp(t.lexeme, "return") == 0){
+  } else if (strcmp(t.lexeme, "return") == 0) {
     t.type = KEYWORD_RETURN;
+  } else if (strcmp(t.lexeme, "float") == 0) {
+		t.type = KEYWORD_FLOAT;
+  }else if (strcmp(t.lexeme, "double") == 0) {
+		t.type = KEYWORD_DOUBLE;
+  }else if (strcmp(t.lexeme, "void") == 0) {
+		t.type = KEYWORD_VOID;
   }
   return t;
 }
@@ -73,84 +78,205 @@ void addToken(TokenList *tokenList, Token token) {
   tokenList->tokens[tokenList->size++] = token;
 }
 
-Token nextToken(Lexer *lexer) {
-  char c = peek(lexer);
+Token nextToken(Lexer *l) {
+  char c = peek(l);
   switch (c) {
   case '\0':
-    return getToken(lexer, END_OF_FILE);
+    return getToken(l, END_OF_FILE);
   case '\n':
-    lexer->line++;
-    lexer->col = 0;
+    l->line++;
+    l->col = 0;
   case ' ':
   case '\t':
   case '\r':
-    lexer->current++;
-    lexer->col++;
-    lexer->start = lexer->current;
-    return nextToken(lexer);
-  case '+':
-    lexer->current++;
-    return getToken(lexer, PLUS);
-  case '-':
-    lexer->current++;
-    return getToken(lexer, MINUS);
-  case '*':
-    lexer->current++;
-    return getToken(lexer, MULTIPLY);
-  case '/':
-    lexer->current++;
-    return getToken(lexer, DIVIDE);
+    l->current++;
+    l->col++;
+    l->start = l->current;
+    return nextToken(l);
+  // Punctuators
+  case '[':
+    l->current++;
+    return getToken(l, LEFT_BRACKET);
+  case ']':
+    l->current++;
+    return getToken(l, RIGHT_BRACKET);
   case '(':
-    lexer->current++;
-    return getToken(lexer, LEFT_PAREN);
+    l->current++;
+    return getToken(l, LEFT_PAREN);
   case ')':
-    lexer->current++;
-    return getToken(lexer, RIGHT_PAREN);
+    l->current++;
+    return getToken(l, RIGHT_PAREN);
   case '{':
-    lexer->current++;
-    return getToken(lexer, LEFT_BRACE);
+    l->current++;
+    return getToken(l, LEFT_BRACE);
   case '}':
-    lexer->current++;
-    return getToken(lexer, RIGHT_BRACE);
-  case ';':
-    lexer->current++;
-    return getToken(lexer, SEMICOLON);
-  case '=':
-    lexer->current++;
-    return getToken(lexer, EQUAL);
-  case ',':
-    lexer->current++;
-    return getToken(lexer, COMMA);
-  case '"':
-    lexer->current++;
-    while (peek(lexer) != '"') {
-      lexer->current++;
+    l->current++;
+    return getToken(l, RIGHT_BRACE);
+  case '.':
+    l->current++;
+    if (peek(l) == '.') {
+      l->current++;
+      if (peek(l) == '.') {
+        l->current++;
+        return getToken(l, DOT_DOT_DOT);
+      }
+      l->current--;
     }
-    lexer->current++;
-    return getToken(lexer, STRING_LITERAL);
+    return getToken(l, DOT);
+  case '-':
+    l->current++;
+    if (peek(l) == '>') {
+      l->current++;
+      return getToken(l, RIGHT_ARROW);
+    } else if (peek(l) == '-') {
+      l->current++;
+      return getToken(l, MINUS_MINUS);
+    } else if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, MINUS_EQUAL);
+    }
+    return getToken(l, MINUS);
+  case '+':
+    l->current++;
+    if (peek(l) == '+') {
+      l->current++;
+      return getToken(l, PLUS_PLUS);
+    } else if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, PLUS_EQUAL);
+    }
+    return getToken(l, PLUS);
+  case '&':
+    l->current++;
+    if (peek(l) == '&') {
+      l->current++;
+      return getToken(l, AND_AND);
+    } else if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, AND_EQUAL);
+    }
+    return getToken(l, AND);
+  case '*':
+    l->current++;
+    if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, STAR_EQUAL);
+    }
+    return getToken(l, STAR);
+  case '~':
+    l->current++;
+    return getToken(l, TILDE);
+  case '!':
+    l->current++;
+    if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, NOT_EQUAL);
+    }
+    return getToken(l, BANG);
+  case '/':
+    l->current++;
+    if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, SLASH_EQUAL);
+    }
+    return getToken(l, SLASH);
+  case '%':
+    l->current++;
+    if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, PERCENT_EQUAL);
+    }
+    return getToken(l, PERCENT);
+  // TODO: << and >>
+  case '<':
+    l->current++;
+    if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, LESS_EQUAL);
+    }
+    return getToken(l, LESS_THAN);
+  case '>':
+    l->current++;
+    if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, GREATER_EQUAL);
+    }
+    return getToken(l, GREATER_THAN);
+  case '=':
+    l->current++;
+    if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, EQUAL_EQUAL);
+    }
+    return getToken(l, EQUAL);
+  case '^':
+    l->current++;
+    if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, CARET_EQUAL);
+    }
+    return getToken(l, CARET);
+  case '|':
+    l->current++;
+    if (peek(l) == '|') {
+      l->current++;
+      return getToken(l, OR_OR);
+    } else if (peek(l) == '=') {
+      l->current++;
+      return getToken(l, OR_EQUAL);
+    }
+    return getToken(l, OR);
+  case '?':
+    l->current++;
+    return getToken(l, QUESTION);
+
+  case ':':
+    l->current++;
+    return getToken(l, COLON);
+  case ';':
+    l->current++;
+    return getToken(l, SEMICOLON);
+    // TODO: <<= and >>=
+  case ',':
+    l->current++;
+    return getToken(l, COMMA);
+
+  case '#':
+    l->current++;
+    if (peek(l) == '#') {
+      l->current++;
+      return getToken(l, HASH_HASH);
+    }
+    return getToken(l, HASH);
+  case '"':
+    l->current++;
+    while (peek(l) != '"') {
+      l->current++;
+    }
+    l->current++;
+    return getToken(l, STRING_LITERAL);
 
   default:
-    if (isAlpha(peek(lexer))) {
+    if (isAlpha(peek(l))) {
 
-      while (isAlphaNumerical(peek(lexer))) {
-        lexer->current++;
+      while (isAlphaNumerical(peek(l))) {
+        l->current++;
       }
 
-      return getIdentifier(lexer);
+      return getIdentifier(l);
     }
-    if(isNumeric(peek(lexer))){
-      while(isNumeric(peek(lexer))){
-        lexer->current++;
+    if (isNumeric(peek(l))) {
+      while (isNumeric(peek(l))) {
+        l->current++;
       }
-      return getToken(lexer, LITERAL);
+      return getToken(l, LITERAL);
     }
   }
 
   printf("WARNING: UNREACHABLE CODE REACHED; lexer.c::nextToken; \n");
-  printf("lexer->current = %d; peek(lexer) = '%c'\n", lexer->current,
-         peek(lexer));
-  lexer->current++;
-  return getToken(lexer, IDENTIFIER);
+  printf("lexer->current = %d; peek(lexer) = '%c'\n", l->current, peek(l));
+  l->current++;
+  return getToken(l, IDENTIFIER);
 }
 TokenList tokenize(Lexer *lexer) {
   while (lexer->current < lexer->length) {

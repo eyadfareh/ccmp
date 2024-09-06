@@ -17,6 +17,7 @@ static Token peek(Parser *p) { return p->tokens.tokens[p->current]; }
 static Token previous(Parser *p) { return p->tokens.tokens[p->current - 1]; }
 static bool isAtEnd(Parser *p) { return peek(p).type == END_OF_FILE; }
 static bool check(Parser *p, TokenType t) { return peek(p).type == t; }
+
 static Token advance(Parser *p) {
   if (!isAtEnd(p))
     p->current++;

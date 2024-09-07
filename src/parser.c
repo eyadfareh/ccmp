@@ -44,28 +44,13 @@ static Token consume(Parser *p, TokenType type) {
 
 
 static Expression *parseExpression(Parser *p);
-static Expression* parsePrimary(Parser* p){
-  Expression* e = malloc(sizeof(Expression));
-  if(match(p, LITERAL)){
-    e->type = LITERAL_EXPRESSION;
-    e->as.literalExpression.value = atoi(previous(p).lexeme);
-  }
-  if(match(p, IDENTIFIER)){
-    e->type = IDENTIFIER_EXPRESSION;
-    e->as.identifierExpression.name = previous(p).lexeme;
-  }
-  return e;
-}
 
 static Expression* finishCall(Parser* p, Expression* e){
-  Expression *expr = malloc(sizeof(Expression));
-  expr->type = CALL_EXPRESSION;
-  expr->as.callExpression.callee = e;
-  expr->as.callExpression.parameters = NULL;
-  expr->as.callExpression.parametersCount = 0;
+	Expression *expr = createCallExpression(e, NULL, 0);
   if(match(p, LEFT_PAREN)){
     return expr;
   }
+
   ExpressionList l;
   l.expressions = malloc(2* sizeof(Expression));
   l.size = 0;
@@ -78,20 +63,176 @@ static Expression* finishCall(Parser* p, Expression* e){
   expr->as.callExpression.parametersCount = l.size;
   return expr;
 }
-static Expression *parseCall(Parser *p) {
-  Expression* expr = parsePrimary(p);
 
-  if(match(p, LEFT_PAREN)){
-    return finishCall(p, expr);
+// TODO: complete
+static Expression* parsePrimaryExpression(Parser* p){
+  Expression* e = createEmptyExpression();
+  if(match(p, LITERAL)){
+    e->type = LITERAL_EXPRESSION;
+    e->as.literalExpression.value = atoi(previous(p).lexeme);
+  }else if(match(p, IDENTIFIER)){
+    e->type = IDENTIFIER_EXPRESSION;
+    e->as.identifierExpression.name = previous(p).lexeme;
+  }else if(match(p, LEFT_PAREN)){
+		e = parseExpression(p);
+		match(p, RIGHT_PAREN);
   }
+  return e;
+}
 
+// TODO: complete
+static Expression *parsePostfixExpression(Parser *p) {
+  Expression* expr = parsePrimaryExpression(p);
+
+	while(match(p, LEFT_PAREN)){
+		switch(previous(p).type){
+			case LEFT_PAREN:
+				return finishCall(p, expr);
+			default:
+				exit(0x285);
+				return NULL;
+		}
+	}
   return expr;
 }
-static Expression *parseExpression(Parser *p) {
-  return parseCall(p);
+// TODO: complete
+static Expression *parseUnaryExpression(Parser *p) {
+	Expression* e = parsePostfixExpression(p);
+	if(match(p, PLUS_PLUS) || match(p, MINUS_MINUS)){
+		return createUnaryExpression(previous(p).type, e);
+	}else if(match(p, MINUS) || match(p, TILDE) || match(p, BANG) || match(p, PLUS) || match(p, STAR) || match(p, AND)){
+		return createUnaryExpression(previous(p).type, e);
+	}
+	return e;
 }
+// TODO: complete
+static Expression *parseCastExpression(Parser *p) { return parseUnaryExpression(p); }
+
+// done
+static Expression *parseMultiplicativeExpression(Parser *p) { 
+	Expression* e = parseCastExpression(p);
+	while(match(p, STAR) || match(p, SLASH) || match(p, PERCENT)){
+		e = createBinaryExpression(e, previous(p).type, parseCastExpression(p));
+	}
+	return e;
+}
+// done
+static Expression *parseAdditiveExpression(Parser *p) {
+	Expression* e = parseMultiplicativeExpression(p);
+	while(match(p, PLUS) || match(p, MINUS)){
+		e = createBinaryExpression(e, previous(p).type, parseMultiplicativeExpression(p));
+	}
+	return e;
+}
+
+// TODO: complete
+static Expression *parseShiftExpression(Parser *p) {
+	Expression *e = parseAdditiveExpression(p);
+	return e;
+}
+
+// done
+static Expression *parseRelationalExpression(Parser *p){
+	Expression *e = parseShiftExpression(p);
+	while(match(p, LESS_THAN) || match(p, GREATER_THAN) || match(p, LESS_EQUAL) || match(p, GREATER_EQUAL) ){
+		e = createBinaryExpression(e, previous(p).type, parseShiftExpression(p));
+	}
+	return e;
+}
+
+// done
+static Expression *parseEqualityExpression(Parser *p){
+	Expression *e = parseRelationalExpression(p);
+	while(match(p, BANG_EQUAL) || match(p, EQUAL_EQUAL)){
+		e = createBinaryExpression(e, previous(p).type, parseRelationalExpression(p));
+	}
+	return e;
+}
+
+// done
+static Expression *parseAndExpression(Parser *p){
+	Expression *e = parseEqualityExpression(p);
+	while(match(p, AND)){
+		e = createBinaryExpression(e, AND, parseEqualityExpression(p));
+	}
+	return e;
+}
+
+// done
+static Expression *parseXorExpression(Parser* p){
+	Expression *e = parseAndExpression(p)	;
+	while(match(p, CARET)){
+		e = createBinaryExpression(e, CARET, parseAndExpression(p));
+	}
+	return e;
+}
+
+// done
+static Expression *parseOrExpression(Parser *p){
+	Expression *e = parseXorExpression(p);
+	while(match(p, PIPE)){
+		e = createBinaryExpression(e, PIPE, parseXorExpression(p));
+	}
+	return e;
+}
+
+// done
+static Expression *parseLogicalAndExpression(Parser *p) {
+	Expression *e = parseOrExpression(p);
+	if (match(p, AND_AND)) {
+		return createBinaryExpression(e, AND_AND, parseOrExpression(p));
+	}
+	return e;
+}
+
+// done
+static Expression *parseLogicalOrExpression(Parser *p) {
+	Expression *e = parseLogicalAndExpression(p);
+	if (match(p, PIPE_PIPE)) {
+		return createBinaryExpression(e, PIPE_PIPE, parseLogicalAndExpression(p));
+	}
+	return e;
+}
+
+// done
+static Expression *parseConditionalExpression(Parser *p) {
+	Expression *e = parseLogicalOrExpression(p);
+	if (match(p, QUESTION)) {
+		Expression *ifTrue = parseExpression(p);
+		consume(p, COLON);
+		Expression *ifFalse = parseExpression(p);
+		return createConditionalExpression(e, ifTrue, ifFalse);
+	}
+	return e;
+}
+
+
+// TODO: complete
+static Expression *parseAssignmentExpression(Parser *p) {
+	Expression *e = parseConditionalExpression(p);
+	if (match(p, EQUAL) || match(p, PLUS_EQUAL) || match(p, MINUS_EQUAL) || match(p, STAR_EQUAL) || match(p, SLASH_EQUAL) || match(p, PERCENT_EQUAL)) {
+		return createBinaryExpression(e, previous(p).type, parseAssignmentExpression(p));
+	}
+	return e;
+}
+
+// done
+static Expression *parseCommaExpression(Parser *p) {
+	Expression *e = parseAssignmentExpression(p);
+	while (match(p, COMMA)) {
+		e = createBinaryExpression(e, COMMA, parseAssignmentExpression(p));
+	}
+	return e;
+	
+}
+
+// done
+static Expression *parseExpression(Parser *p) {
+  return parseCommaExpression(p);
+}
+
 static Statement *parseStatement(Parser *p) {
-  Statement *s = malloc(sizeof(Statement));
+  Statement *s = createEmptyStatement();
 
   if (match(p, KEYWORD_RETURN)) {
     s->type = RETURN_STATEMENT;
@@ -113,7 +254,6 @@ static Statement *parseDeclaration(Parser *p) {
   consume(p, LEFT_PAREN);
   consume(p, RIGHT_PAREN);
   consume(p, LEFT_BRACE);
-  Statement *s = malloc(sizeof(Statement));
 
   StatementList sl;
   sl.capacity = 10;
@@ -124,14 +264,7 @@ static Statement *parseDeclaration(Parser *p) {
     Statement *s = parseStatement(p);
     addStatement(&sl, s);
   }
-  s->type = FUNCTION_DECLARATION;
-  s->as.functionDeclaration.functionName = name.lexeme;
-  s->as.functionDeclaration.parametersCount = 0;
-  s->as.functionDeclaration.parameters = NULL;
-  s->as.functionDeclaration.bodyCount = sl.size;
-  s->as.functionDeclaration.body = sl.statements;
-  s->as.functionDeclaration.returnType = "int";
-
+	Statement *s = createFunctionDeclaration(name.lexeme, NULL, 0, sl.statements, sl.size, "int");
   return s;
 }
 

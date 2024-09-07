@@ -170,7 +170,7 @@ Token nextToken(Lexer *l) {
     l->current++;
     if (peek(l) == '=') {
       l->current++;
-      return getToken(l, NOT_EQUAL);
+      return getToken(l, BANG_EQUAL);
     }
     return getToken(l, BANG);
   case '/':
@@ -220,12 +220,12 @@ Token nextToken(Lexer *l) {
     l->current++;
     if (peek(l) == '|') {
       l->current++;
-      return getToken(l, OR_OR);
+      return getToken(l, PIPE_PIPE);
     } else if (peek(l) == '=') {
       l->current++;
       return getToken(l, OR_EQUAL);
     }
-    return getToken(l, OR);
+    return getToken(l, PIPE);
   case '?':
     l->current++;
     return getToken(l, QUESTION);

@@ -45,6 +45,36 @@ expressionTypes = [
             {"name": "parameters", "type": "Expression**", "free": "call_array"},
             {"name": "parameters_count", "type": "int", "free": False},
         ]
+    },
+    {
+        "name":"unary_expression",
+        "arguments": [
+            {"name": "operator", "type": "TokenType", "free": False},
+            {"name": "right", "type": "Expression*", "free": "call"},
+        ]
+    },
+    {
+        "name": "postfix_expression",
+        "arguments": [
+            {"name": "left", "type": "Expression*", "free": "call"},
+            {"name": "operator", "type": "TokenType", "free": False},
+        ]
+    },
+    {
+        "name": "binary_expression",
+        "arguments": [
+            {"name": "left", "type": "Expression*", "free": "call"},
+            {"name": "operator", "type": "TokenType", "free": False},
+            {"name": "right", "type": "Expression*", "free": "call"},
+        ]
+    },
+    {
+        "name": "conditional_expression",
+        "arguments": [
+            {"name": "condition", "type": "Expression*", "free": "call"},
+            {"name": "left", "type": "Expression*", "free": "call"},
+            {"name": "right", "type": "Expression*", "free": "call"},
+        ]
     }
 ];
 
@@ -104,10 +134,21 @@ def generate_definitions(d, name):
 def generate_function_declaration(d, name):
     print(f"void free{snake2pascal(name)}({snake2pascal(name)}* ast);")
     print(f"void add{snake2pascal(name)}({snake2pascal(name)}List* list, {snake2pascal(name)}* e);")
+    print(f"{snake2pascal(name)}* createEmpty{snake2pascal(name)}();")
+    for t in d:
+        print(f"{snake2pascal(name)}* create{snake2pascal(t['name'])}(", end="")
+        for argument in t["arguments"]:
+            print(f"{argument['type']} {snake2camel(argument['name'])}", end="")
+            if argument != t["arguments"][-1]:
+                print(", ", end="")
+
+        print(");")
+    print("")
 
 
 def generate_function_implementation(d, name):
 
+    # =====================
     # free
     for t in d:
         print(f"void free{snake2pascal(t['name'])}({snake2pascal(name)}* ast) {{")
@@ -136,7 +177,6 @@ def generate_function_implementation(d, name):
     print("  free(ast);")
     print("}")
     # ================================
-
     # Add item to list
     print(f"void add{snake2pascal(name)}({snake2pascal(name)}List* list, {snake2pascal(name)}* e) {{")
     print("  if (list->size == list->capacity) {")
@@ -151,8 +191,34 @@ def generate_function_implementation(d, name):
     print("  list->size++;")
     print("}")
     print("")
+
+    # ================================
+    # Create empty expression
+    print(f"{snake2pascal(name)}* createEmpty{snake2pascal(name)}() {{")
+    print(f"  {snake2pascal(name)}* ast = malloc(sizeof({snake2pascal(name)}));")
+    print(f"  return ast;")
+    print("}")
+
+    # ================================
+    # Create type
+    for t in d:
+        print(f"{snake2pascal(name)}* create{snake2pascal(t['name'])}(", end="")
+        for argument in t["arguments"]:
+            print(f"{argument['type']} {snake2camel(argument['name'])}", end="")
+            if argument != t["arguments"][-1]:
+                print(", ", end="")
+
+        print(") {")
+        print(f"  {snake2pascal(name)}* ast = createEmpty{snake2pascal(name)}();")
+        print(f"  ast->type = {snake2uppersnake(t['name'])};")
+        for argument in t["arguments"]:
+            print(f"  ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])} = {snake2camel(argument['name'])};")
+        print("  return ast;")
+        print("}")
+        print("")
 def generate_header():
     print("#pragma once")
+    print("#include \"lexer.h\"")
     print("")
 
     for t in types:

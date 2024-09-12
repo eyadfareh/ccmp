@@ -1,17 +1,65 @@
 #!/usr/bin/env python3
 import sys
-statementTypes = [
+
+
+typeTypes = [
+    {
+        "name": "basic_type",
+        "arguments": [
+            {"name": "name", "type": "char*", "free": False},
+        ]
+    },
+    {
+        "name": "array_type",
+        "arguments": [
+            {"name": "type", "type": "Type*", "free": "call"},
+            {"name": "size", "type": "int", "free": False},
+        ]
+    },
+    {
+        "name": "struct_type",
+        "arguments": [
+
+        ]
+    },
+    {
+        "name": "function_type",
+        "arguments": [
+            {"name": "return_type", "type": "Type*", "free": "call"},
+            {"name": "parameters", "type": "Type**", "free": "call_array"},
+            {"name": "parameters_count", "type": "int", "free": False},
+        ]
+    },
+    {
+        "name": "pointer_type",
+        "arguments": [
+            {"name": "type", "type": "Type*", "free": "call"},
+        ]
+    },
+]
+declarationTypes = [
+    # Technically not a declaration
+    {
+        "name":"function_definition",
+        "arguments": [
+            {"name": "function_name", "type": "char*", "free": False},
+            {"name": "parameters", "type": "char**", "free": "simple"},
+            {"name": "parameters_count", "type": "int", "free": False},
+            {"name": "body", "type": "Statement*", "free": "call"},
+            {"name": "return_type", "type": "Type*", "free": "call"},
+        ]
+    },
     {
         "name":"function_declaration",
         "arguments": [
             {"name": "function_name", "type": "char*", "free": False},
             {"name": "parameters", "type": "char**", "free": "simple"},
             {"name": "parameters_count", "type": "int", "free": False},
-            {"name": "body", "type": "Statement**", "free": "call_array"},
-            {"name": "body_count", "type": "int", "free": False},
             {"name": "return_type", "type": "char*", "free": False},
         ]
-    },
+    }
+]
+statementTypes = [
     {
         "name":"return_statement",
         "arguments": [
@@ -24,6 +72,13 @@ statementTypes = [
             {"name": "expression", "type": "Expression*", "free": "call"}
         ]
     },
+    {
+        "name":"compound_statement",
+        "arguments": [
+            {"name": "statements", "type": "Statement**", "free": "call_array"},
+            {"name": "statements_count", "type": "int", "free": False},
+        ]
+    }
 ]
 expressionTypes = [
     {
@@ -82,6 +137,8 @@ expressionTypes = [
 types = [
     {"name": "statement", "definition": statementTypes},
     {"name": "expression", "definition": expressionTypes},
+    {"name": "declaration", "definition": declarationTypes},
+    {"name": "type", "definition": typeTypes},
 ]
 
 if len(sys.argv) < 2:
@@ -145,6 +202,7 @@ def generate_function_declaration(d, name):
         print(");")
     print("")
 
+    print(f"{snake2pascal(name)}List createEmpty{snake2pascal(name)}List(size_t capacity);")
 
 def generate_function_implementation(d, name):
 
@@ -216,9 +274,24 @@ def generate_function_implementation(d, name):
         print("  return ast;")
         print("}")
         print("")
+    #============================
+    # Create list
+    print(f"{snake2pascal(name)}List createEmpty{snake2pascal(name)}List(size_t capacity) {{")
+    print(f"  {snake2pascal(name)}List list;")
+    print(f"  list.size = 0;")
+    print(f"  list.capacity = capacity;")
+    print(f"  list.{snake2camel(name)}s = malloc(sizeof({snake2pascal(name)}*) * list.capacity);")
+    print(f"  if (list.{snake2camel(name)}s == NULL) {{")
+    print("    perror(\"malloc\");")
+    print("    exit(1);")
+    print("  }")
+    print("  return list;")
+    print("}")
+
 def generate_header():
     print("#pragma once")
     print("#include \"lexer.h\"")
+    print("#include <stdio.h>")
     print("")
 
     for t in types:

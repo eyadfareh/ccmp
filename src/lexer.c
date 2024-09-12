@@ -56,11 +56,17 @@ static Token getIdentifier(Lexer *lexer) {
   } else if (strcmp(t.lexeme, "return") == 0) {
     t.type = KEYWORD_RETURN;
   } else if (strcmp(t.lexeme, "float") == 0) {
-		t.type = KEYWORD_FLOAT;
-  }else if (strcmp(t.lexeme, "double") == 0) {
-		t.type = KEYWORD_DOUBLE;
-  }else if (strcmp(t.lexeme, "void") == 0) {
-		t.type = KEYWORD_VOID;
+    t.type = KEYWORD_FLOAT;
+  } else if (strcmp(t.lexeme, "double") == 0) {
+    t.type = KEYWORD_DOUBLE;
+  } else if (strcmp(t.lexeme, "void") == 0) {
+    t.type = KEYWORD_VOID;
+  } else if (strcmp(t.lexeme, "let") == 0) {
+		t.type = KEYWORD_LET;
+  }else if (strcmp(t.lexeme, "func") == 0) {
+		t.type = KEYWORD_FUNC;
+  }else if(strcmp(t.lexeme, "extern") == 0) {
+		t.type = KEYWORD_EXTERN;
   }
   return t;
 }

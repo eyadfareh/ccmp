@@ -38,7 +38,7 @@ int compile(char *filename) {
   }
   printf("=============================\n");
   Parser p = createParser(tokens);
-  StatementList statements = parse(&p);
+  DeclarationList statements = parse(&p);
   printf("=============================\n");
 
   FILE *f = fopen("temp.qbe", "w");
@@ -52,9 +52,9 @@ int compile(char *filename) {
 	system("rm -rf temp.s temp.o temp.qbe");
 
   for (int i = 0; i < statements.size; i++)
-    freeStatement(statements.statements[i]);
+    freeDeclaration(statements.declarations[i]);
   free(q);
-  free(statements.statements);
+  free(statements.declarations);
   free(lexer.lexemeBuffer);
   free(buf);
   free(tokens.tokens);

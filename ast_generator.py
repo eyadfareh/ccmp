@@ -26,8 +26,8 @@ typeTypes = [
         "name": "function_type",
         "arguments": [
             {"name": "return_type", "type": "Type*", "free": "call"},
-            {"name": "parameters", "type": "Type**", "free": "call_array"},
             {"name": "parameters_count", "type": "int", "free": False},
+            {"name": "parameters", "type": "Type**", "free": "call_array"},
         ]
     },
     {
@@ -37,29 +37,27 @@ typeTypes = [
         ]
     },
 ]
-declarationTypes = [
-    # Technically not a declaration
+statementTypes = [
     {
         "name":"function_definition",
         "arguments": [
             {"name": "function_name", "type": "char*", "free": False},
-            {"name": "parameters", "type": "char**", "free": "simple"},
             {"name": "parameters_count", "type": "int", "free": False},
+            {"name": "parameters", "type": "char**", "free": "simple"},
+            {"name": "parameter_types_count", "type": "int", "free": False},
+            {"name": "parameter_types", "type": "Type**", "free": "call_array"},
             {"name": "body", "type": "Statement*", "free": "call"},
             {"name": "return_type", "type": "Type*", "free": "call"},
         ]
     },
     {
-        "name":"function_declaration",
+        "name": "variable_declaration",
         "arguments": [
-            {"name": "function_name", "type": "char*", "free": False},
-            {"name": "parameters", "type": "char**", "free": "simple"},
-            {"name": "parameters_count", "type": "int", "free": False},
-            {"name": "return_type", "type": "char*", "free": False},
+            {"name": "name", "type": "char*", "free": False},
+            {"name": "type", "type": "Type*", "free": "call"},
+            {"name": "initializer", "type": "Expression*", "free": "call"},
         ]
-    }
-]
-statementTypes = [
+    },
     {
         "name":"return_statement",
         "arguments": [
@@ -75,8 +73,16 @@ statementTypes = [
     {
         "name":"compound_statement",
         "arguments": [
-            {"name": "statements", "type": "Statement**", "free": "call_array"},
             {"name": "statements_count", "type": "int", "free": False},
+            {"name": "statements", "type": "Statement**", "free": "call_array"},
+        ]
+    },
+    {
+        "name":"if_statement",
+        "arguments": [
+            {"name": "condition", "type": "Expression*", "free": "call"},
+            {"name": "body", "type": "Statement*", "free": "call"},
+            {"name": "else_body", "type": "Statement*", "free": "call"},
         ]
     }
 ]
@@ -91,6 +97,12 @@ expressionTypes = [
         "name": "identifier_expression",
         "arguments":[
             {"name":"name", "type": "char*", "free": False}
+        ]
+    },
+    {
+        "name": "string_expression",
+        "arguments": [
+            {"name": "value", "type": "char*", "free": "simple"},
         ]
     },
     {
@@ -137,7 +149,6 @@ expressionTypes = [
 types = [
     {"name": "statement", "definition": statementTypes},
     {"name": "expression", "definition": expressionTypes},
-    {"name": "declaration", "definition": declarationTypes},
     {"name": "type", "definition": typeTypes},
 ]
 
@@ -204,10 +215,12 @@ def generate_function_declaration(d, name):
 
     print(f"{snake2pascal(name)}List createEmpty{snake2pascal(name)}List(size_t capacity);")
 
+    print(f"void print{snake2pascal(name)}({snake2pascal(name)}* ast, int level);")
+
 def generate_function_implementation(d, name):
 
     # =====================
-    # free
+    # free node
     for t in d:
         print(f"void free{snake2pascal(t['name'])}({snake2pascal(name)}* ast) {{")
         for argument in t["arguments"]:
@@ -225,6 +238,8 @@ def generate_function_implementation(d, name):
         print("}")
 
     print(f"void free{snake2pascal(name)}({snake2pascal(name)}* ast) {{")
+    print("  if (ast == NULL)")
+    print("    return;")
     print("  switch(ast->type) {")
     for t in d:
         # TODO: don't call any function if there are no arguments to free
@@ -287,6 +302,75 @@ def generate_function_implementation(d, name):
     print("  }")
     print("  return list;")
     print("}")
+
+
+    #============================
+    # Print Node
+    for t in d:
+        print(f"void print{snake2pascal(t['name'])}({snake2pascal(name)}* ast, int level);")
+    print("")
+    print(f"void print{snake2pascal(name)}({snake2pascal(name)}* ast, int level) {{")
+    print(f"  if(ast == NULL) {{")
+    print("    printf(\"(null)\\n\");")
+    print("    return;")
+    print("  }")
+    print("  switch(ast->type) {")
+    for t in d:
+        print(f"    case {snake2uppersnake(t['name'])}:")
+        print(f"      print{snake2pascal(t['name'])}(ast, level);")
+        print("      break;")
+    print("  }")
+    print("}")
+
+    print("")
+    def print_idnt(l): print(" " * (l*2), end=""); print('printf("%*c", level * 2, \' \');');
+    def increase_idnt(): print('  level++;');
+    def decrease_idnt(): print('  level--;');
+    for t in d:
+        print(f"void print{snake2pascal(t['name'])}({snake2pascal(name)}* ast, int level) {{")
+        print("  printf(\"{\\n\");")
+        increase_idnt()
+        print_idnt(1)
+        print(f"  printf(\"{snake2pascal(t['name'])}\\n\");")
+        for argument in t["arguments"]:
+            print_idnt(1)
+            print(f"  printf(\"{snake2camel(argument['name'])} = \");")
+            if argument["type"] == "int":
+                print(f"  printf(\"%d\\n\", ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])});")
+            elif argument["type"] == "char*":
+                print(f"  printf(\"\\\"%s\\\"\\n\", ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])});")
+            elif argument["type"] == "TokenType":
+                print(f"  printf(\"%d\\n\", ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])});")
+            elif argument["type"] == "char**":
+                print("  printf(\"[ \");")
+                print(f"  for(int i = 0; i < ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])}Count; i++) {{")
+                print(f"    printf(\"\\\"%s\\\" \", ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])}[i]);")
+                print("  }")
+                print("  printf(\"] \\n\");")
+
+            elif argument["free"] == "call":
+                print(f"  print{snake2pascal(argument['type'][:-1])}(ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])}, level);")
+
+            elif argument["free"] == "call_array":
+                print(f"  printf(\"[ \\n\");")
+                increase_idnt()
+                print(f"  for(int i = 0; i < ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])}Count; i++) {{")
+                print_idnt(2)
+                print(f"    print{snake2pascal(argument['type'][:-2])}(ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])}[i], level);")
+                print("  }")
+                decrease_idnt()
+                print_idnt(1)
+                print("  printf(\"] \\n\");")
+            else:
+                print(f"  printf(\"\\n\");")
+                pass
+            #print(f"  print{snake2pascal(argument['type'])}(ast->as.{snake2camel(t['name'])}.{snake2camel(argument['name'])});")
+            print("")
+        decrease_idnt()
+        print_idnt(1)
+        print("  printf(\"}\\n\");")
+        print("}")
+        
 
 def generate_header():
     print("#pragma once")

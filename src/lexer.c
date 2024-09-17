@@ -62,11 +62,23 @@ static Token getIdentifier(Lexer *lexer) {
   } else if (strcmp(t.lexeme, "void") == 0) {
     t.type = KEYWORD_VOID;
   } else if (strcmp(t.lexeme, "let") == 0) {
-		t.type = KEYWORD_LET;
-  }else if (strcmp(t.lexeme, "func") == 0) {
-		t.type = KEYWORD_FUNC;
-  }else if(strcmp(t.lexeme, "extern") == 0) {
-		t.type = KEYWORD_EXTERN;
+    t.type = KEYWORD_LET;
+  } else if (strcmp(t.lexeme, "func") == 0) {
+    t.type = KEYWORD_FUNC;
+  } else if (strcmp(t.lexeme, "extern") == 0) {
+    t.type = KEYWORD_EXTERN;
+  } else if (strcmp(t.lexeme, "if") == 0) {
+    t.type = KEYWORD_IF;
+  } else if (strcmp(t.lexeme, "else") == 0) {
+    t.type = KEYWORD_ELSE;
+  } else if (strcmp(t.lexeme, "for") == 0) {
+    t.type = KEYWORD_FOR;
+  } else if (strcmp(t.lexeme, "while") == 0) {
+    t.type = KEYWORD_WHILE;
+  } else if (strcmp(t.lexeme, "true") == 0) {
+    t.type = KEYWORD_TRUE;
+  } else if (strcmp(t.lexeme, "false") == 0) {
+    t.type = KEYWORD_FALSE;
   }
   return t;
 }

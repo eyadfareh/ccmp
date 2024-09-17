@@ -5,12 +5,12 @@
 typedef struct QBEProgram QBEProgram;
 
 struct QBEProgram {
-	DeclarationList* declarations;
+	StatementList* statements;
 	FILE* f;
 	int localCount;
 	int shiftWidth;
 };
 
-QBEProgram* qbe(DeclarationList* stmts, FILE* f);
+QBEProgram* qbe(StatementList* stmts, FILE* f);
 
 void qbe_generate(QBEProgram* p);

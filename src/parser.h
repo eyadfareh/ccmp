@@ -10,4 +10,4 @@ typedef struct {
 } Parser;
 
 Parser createParser(TokenList);
-DeclarationList parse(Parser *p);
+StatementList parse(Parser *p);

@@ -1,10 +1,11 @@
 #include "ast.h"
+#include "code_generator.h"
 #include "lexer.h"
 #include "parser.h"
-#include "qbe.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "qbe.h"
 int compile(char *filename) {
   FILE *fp = fopen(filename, "r");
   if (fp == NULL) {
@@ -38,23 +39,25 @@ int compile(char *filename) {
   }
   printf("=============================\n");
   Parser p = createParser(tokens);
-  DeclarationList statements = parse(&p);
+  StatementList statements = parse(&p);
+  for (int i = 0; i < statements.size; i++) {
+    printStatement(statements.statements[i], 0);
+  }
   printf("=============================\n");
 
-  FILE *f = fopen("temp.qbe", "w");
-  QBEProgram *q = qbe(&statements, f);
-  qbe_generate(q);
+
+  FILE *f = fopen("temp.c", "w");
+  Program prog = create_program(&statements, f);
+  generate(&prog);
   fclose(f);
 
-	system("qbe temp.qbe -o temp.s");
-	system("as temp.s -o temp.o");
-	system("ld -lc --dynamic-linker /lib64/ld-linux-x86-64.so.2 temp.o -o temp");
-	system("rm -rf temp.s temp.o temp.qbe");
+  system("gcc temp.c -o temp");
+  system("rm -rf temp.c");
 
   for (int i = 0; i < statements.size; i++)
-    freeDeclaration(statements.declarations[i]);
-  free(q);
-  free(statements.declarations);
+    freeStatement(statements.statements[i]);
+  //free(q);
+  free(statements.statements);
   free(lexer.lexemeBuffer);
   free(buf);
   free(tokens.tokens);

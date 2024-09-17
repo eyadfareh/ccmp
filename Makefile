@@ -1,9 +1,9 @@
 CC = gcc
 CFLAGS = -g
 SOURCE_DIR = src/
-SRC_FILES = main.c lexer.c parser.c ast.c qbe.c
+SRC_FILES = main.c lexer.c parser.c ast.c code_generator.c
 SRC_FILES_FULL = $(addprefix $(SOURCE_DIR), $(SRC_FILES))
-HEADER_FILES = lexer.h parser.h ast.h qbe.h
+HEADER_FILES = lexer.h parser.h ast.h code_generator.h
 HEADER_FILES_FULL = $(addprefix $(SOURCE_DIR), $(HEADER_FILES))
 
 

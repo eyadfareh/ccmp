@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 Parser createParser(TokenList tokens) {
   Parser p;
@@ -42,8 +43,12 @@ static Token consume(Parser *p, TokenType type) {
 }
 
 static Expression *parseExpression(Parser *p);
-static Type* parseType(Parser *p);
-static Statement* parseStatement(Parser *p);
+static Type *parseType(Parser *p);
+static Statement *parseStatement(Parser *p);
+static Expression *parseAssignmentExpression(Parser *p);
+static Statement *parseDeclarationOrStatement(Parser *p);
+static Statement *parseDeclaration(Parser *p);
+static Statement *parseStatement(Parser *p);
 
 // TODO: complete
 static Expression *parsePrimaryExpression(Parser *p) {
@@ -57,6 +62,10 @@ static Expression *parsePrimaryExpression(Parser *p) {
   } else if (match(p, LEFT_PAREN)) {
     e = parseExpression(p);
     match(p, RIGHT_PAREN);
+  } else if (match(p, STRING_LITERAL)) {
+    e->type = STRING_EXPRESSION;
+    e->as.stringExpression.value = malloc(strlen(previous(p).lexeme) + 1);
+    strcpy(e->as.stringExpression.value, previous(p).lexeme);
   } else {
     free(e);
     return NULL;
@@ -72,7 +81,7 @@ static Expression *finishCall(Parser *p, Expression *e) {
 
   ExpressionList l = createEmptyExpressionList(10);
   while (!match(p, RIGHT_PAREN)) {
-    addExpression(&l, parseExpression(p));
+    addExpression(&l, parseAssignmentExpression(p));
     match(p, COMMA);
   }
   expr->as.callExpression.parameters = l.expressions;
@@ -240,87 +249,143 @@ static Expression *parseExpression(Parser *p) {
   return parseCommaExpression(p);
 }
 
-
 static Type *parseType(Parser *p) {
-
-  while (match(p, KEYWORD_STATIC) || match(p, KEYWORD_INT)) {
-    if (previous(p).type == KEYWORD_INT) {
-      return createBasicType("int");
-    }
+  if(match(p, KEYWORD_INT)) {
+    return createBasicType("int");
+  }else if(match(p, KEYWORD_VOID)) {
+    return createBasicType("void");
   }
+}
+
+static Statement *parseCompoundStatement(Parser *p) {
+  consume(p, LEFT_BRACE);
+  StatementList statements = createEmptyStatementList(3);
+  while (!match(p, RIGHT_BRACE)) {
+    // TODO: could be a statement or a declaration
+    addStatement(&statements, parseDeclarationOrStatement(p));
+  }
+
+  return createCompoundStatement(statements.size, statements.statements);
+}
+static Statement *parseExpressionStatement(Parser *p) {
+  if (match(p, SEMICOLON)) {
+    return createExpressionStatement(NULL);
+  }
+  Expression *e = parseExpression(p);
+  consume(p, SEMICOLON);
+  return createExpressionStatement(e);
+}
+
+static Statement *parseReturnStatement(Parser *p) {
+  consume(p, KEYWORD_RETURN);
+  Expression *e = parseExpression(p);
+  consume(p, SEMICOLON);
+  return createReturnStatement(e);
+}
+
+static Statement *parseIfStatement(Parser *p) {
+  consume(p, KEYWORD_IF);
+  consume(p, LEFT_PAREN);
+  Expression *condition = parseExpression(p);
+  consume(p, RIGHT_PAREN);
+  Statement *thenBranch = parseStatement(p);
+  if (match(p, KEYWORD_ELSE)) {
+    Statement *elseBranch = parseStatement(p);
+    return createIfStatement(condition, thenBranch, elseBranch);
+  }
+  return createIfStatement(condition, thenBranch, NULL);
+
+}
+static Statement *parseStatement(Parser *p) {
+  // compound-statement
+  if (check(p, LEFT_BRACE)) {
+    return parseCompoundStatement(p);
+  }
+  // jump-statement
+  if (check(p, KEYWORD_RETURN)) {
+    return parseReturnStatement(p);
+  }
+  
+  if(check(p, KEYWORD_IF)) {
+    return parseIfStatement(p);
+  }
+
+  return parseExpressionStatement(p);
+
   return NULL;
 }
 
-static Statement* parseCompoundStatement(Parser *p) {
-	consume(p, LEFT_BRACE);
-	StatementList statements = createEmptyStatementList(3);
-	while(!match(p, RIGHT_BRACE)) {
-		addStatement(&statements, parseStatement(p));
-	}
-	
-	return createCompoundStatement(statements.statements, statements.size);
+static Statement *parseDeclarationOrStatement(Parser *p) {
+  if (check(p, KEYWORD_LET)) {
+    return parseDeclaration(p);
+  }
+  return parseStatement(p);
+}
+static Statement *parseDeclaration(Parser *p) {
+  if (match(p, KEYWORD_LET)) {
+    consume(p, IDENTIFIER);
+    char *name = previous(p).lexeme;
+    Type *t = createBasicType("int");
+    Expression *e = NULL;
+    if (match(p, COLON)) {
+      t = parseType(p);
+    }
+    if (match(p, EQUAL)) {
+      e = parseExpression(p);
+    }
+    consume(p, SEMICOLON);
+    return createVariableDeclaration(name, t, e);
+  }
+}
+static Statement *parseFunctionDefinition(Parser *p) {
+  consume(p, KEYWORD_FUNC);
+  Token name = consume(p, IDENTIFIER);
+  TokenList ps;
+  ps.size = 0;
+  ps.capacity = 3;
+  ps.tokens = malloc(sizeof(Token) * ps.capacity);
+
+  TypeList types = createEmptyTypeList(3);
+  consume(p, LEFT_PAREN);
+
+  while (!match(p, RIGHT_PAREN)) {
+    addToken(&ps, consume(p, IDENTIFIER));
+    if (match(p, COLON)) {
+      addType(&types, parseType(p));
+    } else {
+      addType(&types, createBasicType("int"));
+    }
+    if (!match(p, COMMA)) {
+      consume(p, RIGHT_PAREN);
+      break;
+    }
+  }
+
+  char **parameters = malloc(sizeof(char *) * (ps.size));
+
+  for (int i = 0; i < ps.size; i++) {
+    parameters[i] = ps.tokens[i].lexeme;
+  }
+
+  free(ps.tokens);
+  Type *returnType = createBasicType("void");
+  if (match(p, COLON)) {
+    returnType = parseType(p);
+  }
+
+  Statement *body = parseCompoundStatement(p);
+  return createFunctionDefinition(name.lexeme, ps.size, parameters, types.size, types.types,
+                                  body, returnType);
+}
+static Statement *parsetTranslationUnit(Parser *p) {
+  if (check(p, KEYWORD_FUNC)) {
+    return parseFunctionDefinition(p);
+  }
 }
 
-static Statement* parseReturnStatement(Parser *p) {
-	consume(p, KEYWORD_RETURN);
-	Expression *e = parseExpression(p);
-	consume(p, SEMICOLON);
-	return createReturnStatement(e);
-}
-static Statement* parseStatement(Parser *p) {
-	if(check(p, LEFT_BRACE)) {
-		return parseCompoundStatement(p);
-	}else if(check(p, KEYWORD_RETURN)) {
-		return parseReturnStatement(p);
-	}
-	return NULL;
-}
-
-static Declaration *parseFunctionDefinition(Parser *p) {
-	consume(p, KEYWORD_FUNC);
-	Token name = consume(p, IDENTIFIER);
-	TokenList ps;
-	ps.size = 0;
-	ps.capacity = 3;
-	ps.tokens = malloc(sizeof(Token) * ps.capacity);
-
-	TypeList types = createEmptyTypeList(3);
-	consume(p, LEFT_PAREN);
-
-	while (!match(p, RIGHT_PAREN)) {
-		addToken(&ps, consume(p, IDENTIFIER));
-		if(match(p, COLON)) {
-			addType(&types, parseType(p));
-		}
-		if(!match(p, COMMA)){
-			consume(p, RIGHT_PAREN);
-			break;
-		}
-	}
-	char** parameters = malloc(sizeof(char*) * (ps.size));
-	for(int i = 0; i < ps.size; i++) {
-		parameters[i] = ps.tokens[i].lexeme;
-	}
-	free(ps.tokens);
-	Type* returnType = createBasicType("void");
-	if(match(p, COLON)) {
-		returnType = parseType(p);
-	}
-
-	Statement* body = parseCompoundStatement(p);
-	return createFunctionDefinition(name.lexeme, parameters, ps.size, body, returnType);
-
-}
-static Declaration *parsetTranslationUnit(Parser *p) {
-	if(check(p, KEYWORD_FUNC)) {
-		return parseFunctionDefinition(p);
-	}
-
-}
-
-DeclarationList parse(Parser *p) {
-  DeclarationList ls = createEmptyDeclarationList(10);
+StatementList parse(Parser *p) {
+  StatementList ls = createEmptyStatementList(10);
   while (!check(p, END_OF_FILE))
-    addDeclaration(&ls, parsetTranslationUnit(p));
+    addStatement(&ls, parsetTranslationUnit(p));
   return ls;
 }
